@@ -5,8 +5,8 @@ def to_rupiah(number):
     rupiah_format = "Rp {:,.0f}".format(number).replace(",", ".")
     return rupiah_format
 
-# Function to calculate monthly profit
-def calculate_monthly_profit(initial_capital, annual_interest_rate, reinvest_threshold=1000000, months=12):
+# Function to calculate monthly profit with committed monthly add
+def calculate_monthly_profit(initial_capital, annual_interest_rate, monthly_add, reinvest_threshold=1000000, months=12):
     capital = initial_capital  # Capital in regular units
     monthly_interest_rate = annual_interest_rate / 12 / 100  # Convert annual interest to monthly
     monthly_profits = []
@@ -15,6 +15,9 @@ def calculate_monthly_profit(initial_capital, annual_interest_rate, reinvest_thr
     results = []  # To store the monthly results for display
 
     for month in range(1, months + 1):
+        # Add committed monthly addition to capital at the beginning of each month
+        capital += monthly_add
+
         # Calculate interest
         interest = capital * monthly_interest_rate
         total_interest_accumulated += interest
@@ -35,14 +38,15 @@ def calculate_monthly_profit(initial_capital, annual_interest_rate, reinvest_thr
 # Streamlit App Interface
 st.title("Investment Profit Calculator")
 
-# Input fields for capital, months, and interest rate
+# Input fields for capital, months, interest rate, and committed monthly addition
 capital = st.number_input("Initial Capital (Rp)", min_value=1000000, step=1000000, value=1000000)
 months = st.number_input("Number of Months", min_value=1, step=1, value=12)
 interest_rate = st.number_input("Annual Interest Rate (%)", min_value=0.0, step=0.1, value=6.5)
+monthly_add = st.number_input("Committed Monthly Add (Rp)", min_value=0, step=1000000, value=0)
 
 # Button to trigger the calculation
 if st.button("Calculate"):
-    results = calculate_monthly_profit(initial_capital=capital, annual_interest_rate=interest_rate, months=months)
+    results = calculate_monthly_profit(initial_capital=capital, annual_interest_rate=interest_rate, monthly_add=monthly_add, months=months)
     
     # Display the results
     st.subheader("Monthly Profit Breakdown")
