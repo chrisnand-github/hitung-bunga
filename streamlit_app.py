@@ -1,66 +1,50 @@
-import altair as alt
-import pandas as pd
 import streamlit as st
 
-# Show the page title and description.
-st.set_page_config(page_title="Movies dataset", page_icon="🎬")
-st.title("🎬 Movies dataset")
-st.write(
-    """
-    This app visualizes data from [The Movie Database (TMDB)](https://www.kaggle.com/datasets/tmdb/tmdb-movie-metadata).
-    It shows which movie genre performed best at the box office over the years. Just 
-    click on the widgets below to explore!
-    """
-)
+# Function to format numbers to Indonesian Rupiah format
+def to_rupiah(number):
+    rupiah_format = "Rp {:,.0f}".format(number).replace(",", ".")
+    return rupiah_format
 
+# Function to calculate monthly profit
+def calculate_monthly_profit(initial_capital, annual_interest_rate, reinvest_threshold=1000000, months=12):
+    capital = initial_capital  # Capital in regular units
+    monthly_interest_rate = annual_interest_rate / 12 / 100  # Convert annual interest to monthly
+    monthly_profits = []
+    total_interest_accumulated = 0  # Accumulated interest
 
-# Load the data from a CSV. We're caching this so it doesn't reload every time the app
-# reruns (e.g. if the user interacts with the widgets).
-@st.cache_data
-def load_data():
-    df = pd.read_csv("data/movies_genres_summary.csv")
-    return df
+    results = []  # To store the monthly results for display
 
+    for month in range(1, months + 1):
+        # Calculate interest
+        interest = capital * monthly_interest_rate
+        total_interest_accumulated += interest
 
-df = load_data()
+        # Reinvest if accumulated interest reaches or exceeds 1,000,000
+        if total_interest_accumulated >= reinvest_threshold:
+            reinvestment_units = total_interest_accumulated // reinvest_threshold  # Full units of 1,000,000 to reinvest
+            capital += reinvestment_units * reinvest_threshold  # Add the full units of 1,000,000 to capital
+            total_interest_accumulated -= reinvestment_units * reinvest_threshold  # Subtract the reinvested interest
 
-# Show a multiselect widget with the genres using `st.multiselect`.
-genres = st.multiselect(
-    "Genres",
-    df.genre.unique(),
-    ["Action", "Adventure", "Biography", "Comedy", "Drama", "Horror"],
-)
+        monthly_profits.append(interest)
+        
+        # Append formatted results
+        results.append(f"Month {month}: Interest = {to_rupiah(interest)}, Capital = {to_rupiah(capital)}, Accumulated Interest = {to_rupiah(total_interest_accumulated)}")
 
-# Show a slider widget with the years using `st.slider`.
-years = st.slider("Years", 1986, 2006, (2000, 2016))
+    return results
 
-# Filter the dataframe based on the widget input and reshape it.
-df_filtered = df[(df["genre"].isin(genres)) & (df["year"].between(years[0], years[1]))]
-df_reshaped = df_filtered.pivot_table(
-    index="year", columns="genre", values="gross", aggfunc="sum", fill_value=0
-)
-df_reshaped = df_reshaped.sort_values(by="year", ascending=False)
+# Streamlit App Interface
+st.title("Investment Profit Calculator")
 
+# Input fields for capital, months, and interest rate
+capital = st.number_input("Initial Capital (Rp)", min_value=1000000, step=1000000, value=1000000)
+months = st.number_input("Number of Months", min_value=1, step=1, value=12)
+interest_rate = st.number_input("Annual Interest Rate (%)", min_value=0.0, step=0.1, value=6.5)
 
-# Display the data as a table using `st.dataframe`.
-st.dataframe(
-    df_reshaped,
-    use_container_width=True,
-    column_config={"year": st.column_config.TextColumn("Year")},
-)
-
-# Display the data as an Altair chart using `st.altair_chart`.
-df_chart = pd.melt(
-    df_reshaped.reset_index(), id_vars="year", var_name="genre", value_name="gross"
-)
-chart = (
-    alt.Chart(df_chart)
-    .mark_line()
-    .encode(
-        x=alt.X("year:N", title="Year"),
-        y=alt.Y("gross:Q", title="Gross earnings ($)"),
-        color="genre:N",
-    )
-    .properties(height=320)
-)
-st.altair_chart(chart, use_container_width=True)
+# Button to trigger the calculation
+if st.button("Calculate"):
+    results = calculate_monthly_profit(initial_capital=capital, annual_interest_rate=interest_rate, months=months)
+    
+    # Display the results
+    st.subheader("Monthly Profit Breakdown")
+    for result in results:
+        st.write(result)
