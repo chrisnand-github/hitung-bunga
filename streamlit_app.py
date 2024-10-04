@@ -1,4 +1,6 @@
 import streamlit as st
+import pandas as pd
+import altair as alt
 
 # Function to format numbers to Indonesian Rupiah format
 def to_rupiah(number):
@@ -13,6 +15,7 @@ def calculate_monthly_profit(initial_capital, annual_interest_rate, monthly_add,
     total_interest_accumulated = 0  # Accumulated interest
 
     results = []  # To store the monthly results for display
+    capital_growth = []  # To store the capital value for each month
 
     for month in range(1, months + 1):
         # Add committed monthly addition to capital at the beginning of each month
@@ -30,10 +33,11 @@ def calculate_monthly_profit(initial_capital, annual_interest_rate, monthly_add,
 
         monthly_profits.append(interest)
         
-        # Append formatted results
+        # Append formatted results and track capital growth
+        capital_growth.append({'Month': month, 'Capital': capital})
         results.append(f"Month {month}: Interest = {to_rupiah(interest)}, Capital = {to_rupiah(capital)}, Accumulated Interest = {to_rupiah(total_interest_accumulated)}")
 
-    return results
+    return results, capital_growth
 
 # Streamlit App Interface
 st.title("Investment Profit Calculator")
@@ -46,9 +50,27 @@ monthly_add = st.number_input("Committed Monthly Add (Rp)", min_value=0, step=10
 
 # Button to trigger the calculation
 if st.button("Calculate"):
-    results = calculate_monthly_profit(initial_capital=capital, annual_interest_rate=interest_rate, monthly_add=monthly_add, months=months)
+    results, capital_growth = calculate_monthly_profit(initial_capital=capital, annual_interest_rate=interest_rate, monthly_add=monthly_add, months=months)
     
     # Display the results
     st.subheader("Monthly Profit Breakdown")
     for result in results:
         st.write(result)
+    
+    # Convert capital growth data to a DataFrame for graphing
+    df = pd.DataFrame(capital_growth)
+    
+    # Create an Altair line chart
+    st.subheader("Capital Growth Over Time")
+    chart = alt.Chart(df).mark_line().encode(
+        x='Month',
+        y=alt.Y('Capital', title='Capital (Rp)'),
+        tooltip=['Month', 'Capital']
+    ).properties(
+        width=700,
+        height=400,
+        title="Capital Growth Over Time"
+    )
+    
+    # Display the chart
+    st.altair_chart(chart)
