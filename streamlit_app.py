@@ -7,12 +7,13 @@ def to_rupiah(number):
     rupiah_format = "Rp {:,.0f}".format(number).replace(",", ".")
     return rupiah_format
 
-# Function to calculate monthly profit with committed monthly add
+# Function to calculate monthly profit with committed monthly add and total investment
 def calculate_monthly_profit(initial_capital, annual_interest_rate, monthly_add, reinvest_threshold=1000000, months=12):
     capital = initial_capital  # Capital in regular units
     monthly_interest_rate = annual_interest_rate / 12 / 100  # Convert annual interest to monthly
     monthly_profits = []
     total_interest_accumulated = 0  # Accumulated interest
+    total_investment = initial_capital  # Track total investment (without reinvestment)
 
     results = []  # To store the monthly results for display
     capital_growth = []  # To store the capital value for each month
@@ -20,6 +21,7 @@ def calculate_monthly_profit(initial_capital, annual_interest_rate, monthly_add,
     for month in range(1, months + 1):
         # Add committed monthly addition to capital at the beginning of each month
         capital += monthly_add
+        total_investment += monthly_add  # Add to total investment (without reinvestment)
 
         # Calculate interest
         interest = capital * monthly_interest_rate
@@ -37,7 +39,7 @@ def calculate_monthly_profit(initial_capital, annual_interest_rate, monthly_add,
         capital_growth.append({'Month': month, 'Capital': capital})
         results.append(f"Month {month}: Interest = {to_rupiah(interest)}, Capital = {to_rupiah(capital)}, Accumulated Interest = {to_rupiah(total_interest_accumulated)}")
 
-    return results, capital_growth
+    return results, capital_growth, total_investment
 
 # Streamlit App Interface
 st.title("Investment Profit Calculator")
@@ -50,12 +52,15 @@ monthly_add = st.number_input("Committed Monthly Add (Rp)", min_value=0, step=10
 
 # Button to trigger the calculation
 if st.button("Calculate"):
-    results, capital_growth = calculate_monthly_profit(initial_capital=capital, annual_interest_rate=interest_rate, monthly_add=monthly_add, months=months)
+    results, capital_growth, total_investment = calculate_monthly_profit(initial_capital=capital, annual_interest_rate=interest_rate, monthly_add=monthly_add, months=months)
     
     # Display the results
     st.subheader("Monthly Profit Breakdown")
     for result in results:
         st.write(result)
+    
+    # Display total investment (without reinvestment)
+    st.subheader(f"Total Investment (without reinvestment): {to_rupiah(total_investment)}")
     
     # Convert capital growth data to a DataFrame for graphing
     df = pd.DataFrame(capital_growth)
